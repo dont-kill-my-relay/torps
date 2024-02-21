@@ -1,3 +1,15 @@
+### Install things you need for Python 2.7 in 2024
+
+Have `python2.7` installed on the machine.
+
+- Make sure to have the following packages installed: `python2-pip-whl python2-setuptools-whl python3-virtualenv`
+- Create a virtual environment: `virtualenv --python=python2.7 venv`
+- Use it like a regular python3 virtual environment:
+  - Activate: `source venv/bin/activate`
+  - Deactivate: `deactivate`
+
+Once in the virtual environment, install the requirements: `pip install -r requirements.txt`
+
 ### Top-level simulation code:
 - pathsim.py: Path simulator code. Needs Tor's stem library, consensuses, and descriptors
 - congestion_aware_pathsim.py: Path simulator code for congestion-aware Tor (CAT) variant
@@ -40,27 +52,30 @@ Basic path simulation can be done entirely with pathsim.py. It requires Stem
 (https://stem.torproject.org/). Simulation is a two-step process:
   1. Process Tor consensuses and descriptors into a faster and more compact format for
   later path simulation. This is done with the following command:
-  <pre><code>python pathsim.py process [args]
-  </pre></code>
+  <pre><code>python pathsim.py process [args] </pre></code>
+
   Replace [args] with "-h" for argument details. An example of this command is:
   <pre><code>python pathsim.py process --start_year 2013 --start_month 8 --end_year 2014 --end_month 7
-  --in_dir in --out_dir out --initial_descriptor_dir in/server-descriptors-2013-07
-  </pre></code>
-    TorPS expects to find all consensuses and descriptors for a given month in the format
+  --in_dir in --out_dir out --initial_descriptor_dir in/server-descriptors-2013-07 </pre></code>
+
+  TorPS expects to find all consensuses and descriptors for a given month in the format
   and organization of the metrics.torproject.org consensus archives. Extract the
   consensus archive for a month into a directory named
   "[in-dir]/consensuses-[year]-[month]", where [year] is in YYYY format and [month]
   in is MM format. Similarly, extract the archive of descriptors for a given month into
   the directory "[in-dir]/server-descriptors-[year]-[month]".
   
-    The processing command will go through each month from [start_year]/[start_month] to
+  The processing command will go through each month from [start_year]/[start_month] to
   [end_year]/[end_month]. It will output the processed "network state files" for
   a given month into the directory "[out_dir]/network-state-[year]-[month]", which will
   be created if it doesn't exist.
   
-    If --fat is provided, then the network state files will contain all data from the Tor consensuses and descriptors. However, the resulting "fat" network state files *cannot* be used by TorPS for simulation. They may be useful to inspect more fully the network states of a given simulation.
+  If `--fat` is provided, then the network state files will contain all data from the Tor 
+  consensuses and descriptors. However, the resulting "fat" network state files *cannot* be 
+  used by TorPS for simulation. They may be useful to inspect more fully the network states 
+  of a given simulation.
   
-    If the consensuses being processed start at the very beginning of a
+  If the consensuses being processed start at the very beginning of a
   month, which is true assuming you just extract some monthly consensus archives as
   provided by Tor Metrics, then the --initial_descriptor_dir argument should be included
   with a directory containing the descriptors from the month *before* the first consensus month.
@@ -85,20 +100,20 @@ Basic path simulation can be done entirely with pathsim.py. It requires Stem
   <pre><code>Processing consensus file 2013-09-02-00-00-00-consensus
   ...
   Wrote descriptors for 4261 relays.
-  Did not find descriptors for 0 relays
-  </pre></code>
+  Did not find descriptors for 0 relays </pre></code>
+
   The script util/examine_process_output.py can be fed the output of the process command
   to provide convenient statistics about the relays and descriptors produced in each network
   state file.
   2. Run simulations over a given period. This is done with the following command:
-  <pre><code>python pathsim.py simulate [args]
-  </pre></code>
+  <pre><code>python pathsim.py simulate [args] </pre></code>
+
   Replace [args] with "-h" for argument details. An example of the command for a 5000-sample
   simulation in which the client makes a connection to Google (74.125.131.105) every 10 minutes
   (i.e. 600 seconds) is:
   <pre><code>python pathsim.py simulate --nsf_dir out/ns-2013-08--2014-07 --num_samples 5000 
-  --user_model simple=600 --format normal tor
-  </pre></code>
+  --user_model simple=600 --format normal tor  </pre></code>
+
   Following is another example of the simulate command. This example executes a simulation in which
   the user has "typical"
   behavior as given in the included trace file, a malicious guard relay is added with consensus
@@ -109,13 +124,13 @@ Basic path simulation can be done entirely with pathsim.py. It requires Stem
   <pre><code>python pathsim.py simulate --nsf_dir out/ns-2013-08--2014-07 --num_samples 5000
   --trace_file in/users2-processed.traces.pickle --user_model typical --format relay-adv
   --adv_guard_cons_bw 15000 --adv_exit_cons_bw 10000 --adv_time 0 --num_adv_guards 1
-  --num_adv_exits 1 --num_guards 2 --guard_expiration 270 --loglevel INFO tor
-  </pre></code>  
+  --num_adv_exits 1 --num_guards 2 --guard_expiration 270 --loglevel INFO tor   </pre></code>
+
   The included trace file (in/users2-processed.traces.pickle) includes six 20-minute traces recorded 
   from a volunteer using Tor for the following activities: Facebook, Gmail / Google Chat (now 
   Hangouts), Google Calendar / Google Docs, Web search, IRC, and BitTorrent. These are repeated on a
   weekly schedule to create user models that fill the simulated time period. Also, a "typical" model
-  is provided including all of  the first four traces (i.e. Facebook, Gmail/GChat, GCal/GDocs, Web
+  is provided including all of the first four traces (i.e. Facebook, Gmail/GChat, GCal/GDocs, Web
   search) in the schedule, and "best" and "worst" models are provided by replacing the TCP ports in
   the typical model with ports 443 and 6523, respectively. See the paper "Users Get Routed: Traffic
   Correlation on Tor by Realistic Adversaries" cited above for details on these traces and models.
