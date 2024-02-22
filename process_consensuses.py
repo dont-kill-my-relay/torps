@@ -15,14 +15,14 @@ def skip_listener(path, exception):
                                     exception.__unicode__().encode('ascii', 'ignore')))
 
 
-def read_descriptors((chunk, descriptor_dir)):
+def read_descriptors((chunk, files)):
     """Add to descriptors contents of descriptor archive in descriptor_dir."""
     start = time.time()
     descriptors = {}
     num_descriptors = 0
     num_relays = 0
     # print('Reading descriptors from: {0}'.format(descriptor_dir))
-    reader = stem.descriptor.reader.DescriptorReader(descriptor_dir, validate=True)
+    reader = stem.descriptor.reader.DescriptorReader(files, validate=True)
     reader.register_skip_listener(skip_listener)
     # use read listener to store metrics type annotation, which is otherwise discarded
     cur_type_annotation = [None]
