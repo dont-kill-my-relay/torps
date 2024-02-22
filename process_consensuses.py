@@ -8,7 +8,7 @@ import cPickle as pickle
 import multiprocessing
 from os import listdir
 from os.path import isfile, join
-
+import time
 
 def skip_listener(path, exception):
     print('ERROR [{0}]: {1}'.format(path.encode('ascii', 'ignore'),
@@ -17,6 +17,7 @@ def skip_listener(path, exception):
 
 def read_descriptors((chunk, descriptor_dir)):
     """Add to descriptors contents of descriptor archive in descriptor_dir."""
+    start = time.time()
     descriptors = {}
     num_descriptors = 0
     num_relays = 0
@@ -50,7 +51,8 @@ def read_descriptors((chunk, descriptor_dir)):
                 # stuff type annotation into stem object
             desc.type_annotation = cur_type_annotation[0]
             descriptors[desc.fingerprint][pathsim.timestamp(desc.published)] = desc
-    print('chunk {0}: #descriptors: {1}; #relays:{2}'.format(chunk, num_descriptors, num_relays))
+    print('chunk {0}: #descriptors: {1}; #relays:{2} in {3} s'
+          .format(chunk, num_descriptors, num_relays, round(time.time() - start, 2)))
     return descriptors
 
 
@@ -82,7 +84,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
         files += [join(folder, f) for f in listdir(folder) if isfile(join(folder, f))]
 
     # split the list of files into chunks.  each chunk is for one process in the pool
-    chunk_size = 20000
+    chunk_size = 5000
     files = [files[i:i + chunk_size] for i in range(0, len(files), chunk_size)]
     print('processing {} chunks'.format(len(files)))
     # read all descriptors into memory
