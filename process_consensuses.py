@@ -81,7 +81,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     nb_processes = min(multiprocessing.cpu_count(), len(in_dirs))
     print 'count and dir processes', nb_processes
 
-    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) else int(100 / psutil.virtual_memory().percent),
+    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) else int(100 / psutil.virtual_memory().percent)
     print 'using {} processes for descriptor parsing'.format(nb_processes)
 
     if nb_processes == 1:
