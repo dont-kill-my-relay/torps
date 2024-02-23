@@ -105,6 +105,7 @@ Basic path simulation can be done entirely with pathsim.py. It requires Stem
   The script util/examine_process_output.py can be fed the output of the process command
   to provide convenient statistics about the relays and descriptors produced in each network
   state file.
+
   2. Run simulations over a given period. This is done with the following command:
   <pre><code>python pathsim.py simulate [args] </pre></code>
 
