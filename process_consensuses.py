@@ -9,7 +9,7 @@ import multiprocessing
 from os import listdir
 from os.path import isfile, join
 from descriptor_reader import DescriptorReader
-
+import psutil
 def skip_listener(path, exception):
     print('ERROR [{0}]: {1}'.format(path.encode('ascii', 'ignore'),
                                     exception.__unicode__().encode('ascii', 'ignore')))
@@ -55,7 +55,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     if initial_descriptor_dir is not None:
         descriptor_folders.append(initial_descriptor_dir)
     descriptor_folders += [desc_dir for _, desc_dir, _ in in_dirs]
-
+    print len(in_dirs)
     files = []
     print('listing files')
     for folder in descriptor_folders:
@@ -78,17 +78,32 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
                 descriptors[k] = v
     print('have {} descriptors in dict'.format(sum([len(v) for v in descriptors.values()])))
 
-    for in_consensuses_dir, _, desc_out_dir in in_dirs:
-        # output pickled consensuses, dict of most recent descriptors, and 
-        # list of hibernation status changes
-        pathnames = []
-        for dirpath, dirnames, fnames in os.walk(in_consensuses_dir):
-            for fname in fnames:
-                pathnames.append(os.path.join(dirpath, fname))
-        pathnames.sort()
-        pathnames = [path for path in pathnames if os.path.basename(path)[0] != '.']
-        for pathname in pathnames:
-            process_one_consensus(desc_out_dir, descriptors, fat, pathname)
+    nb_processes = min(multiprocessing.cpu_count(),
+                       int(100 / psutil.virtual_memory().percent),
+                       len(in_dirs))
+    nb_processes = 1 if nb_processes <= 1 else nb_processes - 1
+    print 'using {} processes for descriptor parsing'.format(nb_processes)
+
+    if nb_processes == 1:
+        for in_consensuses_dir, _, desc_out_dir in in_dirs:
+            process_batch_of_consensuses((desc_out_dir, descriptors, fat, in_consensuses_dir))
+    else:
+        p = multiprocessing.Pool(nb_processes)
+        p.map(process_batch_of_consensuses,
+              [(desc_out_dir, descriptors, fat, in_consensuses_dir) for in_consensuses_dir, _, desc_out_dir in in_dirs])
+
+
+def process_batch_of_consensuses((desc_out_dir, descriptors, fat, in_consensuses_dir)):
+    # output pickled consensuses, dict of most recent descriptors, and
+    # list of hibernation status changes
+    pathnames = []
+    for dirpath, dirnames, fnames in os.walk(in_consensuses_dir):
+        for fname in fnames:
+            pathnames.append(os.path.join(dirpath, fname))
+    pathnames.sort()
+    pathnames = [path for path in pathnames if os.path.basename(path)[0] != '.']
+    for pathname in pathnames:
+        process_one_consensus(desc_out_dir, descriptors, fat, pathname)
 
 
 def process_one_consensus(desc_out_dir, descriptors, fat, pathname):
