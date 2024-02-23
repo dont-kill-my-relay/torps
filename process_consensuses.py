@@ -8,7 +8,7 @@ import cPickle as pickle
 import multiprocessing
 from os import listdir
 from os.path import isfile, join
-import time
+from descriptor_reader import DescriptorReader
 
 def skip_listener(path, exception):
     print('ERROR [{0}]: {1}'.format(path.encode('ascii', 'ignore'),
@@ -17,42 +17,20 @@ def skip_listener(path, exception):
 
 def read_descriptors((chunk, files)):
     """Add to descriptors contents of descriptor archive in descriptor_dir."""
-    start = time.time()
     descriptors = {}
     num_descriptors = 0
     num_relays = 0
-    # print('Reading descriptors from: {0}'.format(descriptor_dir))
-    reader = stem.descriptor.reader.DescriptorReader(files, validate=True)
-    reader.register_skip_listener(skip_listener)
-    # use read listener to store metrics type annotation, which is otherwise discarded
-    cur_type_annotation = [None]
 
-    def read_listener(path):
-        f = open(path)
-        # store initial metrics type annotation
-        initial_position = f.tell()
-        first_line = f.readline()
-        f.seek(initial_position)
-        if first_line[0:5] == '@type':
-            cur_type_annotation[0] = first_line
-        else:
-            cur_type_annotation[0] = None
-        f.close()
+    dr = DescriptorReader()
+    for f in files:
+        desc = dr.get_descriptor(f)
+        num_descriptors += 1
+        if desc is not None and desc['fingerprint'] not in descriptors:
+            descriptors[desc['fingerprint']] = {}
+            num_relays += 1
 
-    reader.register_read_listener(read_listener)
-    with reader:
-        for desc in reader:
-            # if num_descriptors % 10000 == 0:
-            # print('{0} descriptors processed.'.format(num_descriptors))
-            num_descriptors += 1
-            if desc.fingerprint not in descriptors:
-                descriptors[desc.fingerprint] = {}
-                num_relays += 1
-                # stuff type annotation into stem object
-            desc.type_annotation = cur_type_annotation[0]
-            descriptors[desc.fingerprint][pathsim.timestamp(desc.published)] = desc
-    print('chunk {0}: #descriptors: {1}; #relays:{2} in {3} s'
-          .format(chunk, num_descriptors, num_relays, round(time.time() - start, 2)))
+        descriptors[desc['fingerprint']][pathsim.timestamp(desc['published'])] = desc
+    print('chunk {0}: #descriptors: {1}; #relays:{2}'.format(chunk, num_descriptors, num_relays))
     return descriptors
 
 
@@ -195,15 +173,12 @@ def process_one_consensus(desc_out_dir, descriptors, fat, pathname):
             desc = descriptors[r_stat.fingerprint][desc_time]
             if not fat:
                 descriptors_out[r_stat.fingerprint] = \
-                    pathsim.ServerDescriptor(desc.fingerprint,
-                                             desc.hibernating, desc.nickname,
-                                             desc.family, desc.address,
-                                             desc.exit_policy, desc.ntor_onion_key)
+                    pathsim.ServerDescriptor(desc['fingerprint'],
+                                             desc['hibernating'], desc['nickname'],
+                                             desc['family'], desc['address'],
+                                             desc['exit_policy'], desc['ntor_onion_key'])
             else:
-                if desc.type_annotation is not None:
-                    descriptors_out[r_stat.fingerprint] = desc.type_annotation + str(desc)
-                else:
-                    descriptors_out[r_stat.fingerprint] = str(desc)
+                raise NotImplementedError('--fat option is not supported with this custom version of torps')
 
             # store hibernating statuses
             if desc_time_fresh is None:
@@ -212,21 +187,21 @@ def process_one_consensus(desc_out_dir, descriptors, fat, pathname):
                     'not find descriptor for initial hibernation status for fresh period starting {4}.'.
                     format(r_stat.nickname, r_stat.fingerprint, pub_time, desc_time, valid_after_ts))
             desc = descriptors[r_stat.fingerprint][desc_time_fresh]
-            cur_hibernating = desc.hibernating
+            cur_hibernating = desc['hibernating']
             # setting initial status
-            hibernating_statuses.append((0, desc.fingerprint, cur_hibernating))
+            hibernating_statuses.append((0, desc['fingerprint'], cur_hibernating))
             if cur_hibernating:
                 print(
-                    '{0}:{1} was hibernating at consenses period start'.format(desc.nickname, desc.fingerprint))
+                    '{0}:{1} was hibernating at consenses period start'.format(desc['nickname'], desc['fingerprint']))
             descs_while_fresh.sort(key=lambda x: x[0])
             for (t, d) in descs_while_fresh:
-                if d.hibernating != cur_hibernating:
-                    cur_hibernating = d.hibernating
-                    hibernating_statuses.append((t, d.fingerprint, cur_hibernating))
+                if d['hibernating'] != cur_hibernating:
+                    cur_hibernating = d['hibernating']
+                    hibernating_statuses.append((t, d['fingerprint'], cur_hibernating))
                     if cur_hibernating:
-                        print('{0}:{1} started hibernating at {2}'.format(d.nickname, d.fingerprint, t))
+                        print('{0}:{1} started hibernating at {2}'.format(d['nickname'], d['fingerprint'], t))
                     else:
-                        print('{0}:{1} stopped hibernating at {2}'.format(d.nickname, d.fingerprint, t))
+                        print('{0}:{1} stopped hibernating at {2}'.format(d['nickname'], d['fingerprint'], t))
         else:
             num_not_found += 1
     # output pickled consensus, recent descriptors, and

@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 
@@ -46,7 +47,6 @@ class DescriptorReader:
         keys = {'exit_policy', 'family', 'type_annotation', 'published'}
         keys.update(keys_bool)
         keys.update(keys_str)
-
         descriptor = self._get_descriptor_data_from_file(file_path)
         if descriptor is None:
             return None
@@ -64,9 +64,13 @@ class DescriptorReader:
                 result.update({key: found})
             else:
                 result.update({key: pattern.findall(descriptor)})
-
         result['hibernating'] = result['hibernating'] == '1'
         result['exit_policy'] = stem.exit_policy.ExitPolicy(*result['exit_policy'])
+        try:
+            result['published'] = datetime.datetime.strptime(result['published'][:19], '%Y-%m-%d %H:%M:%S')
+        except:
+            print file_path
+            return None
         return result
 
 
