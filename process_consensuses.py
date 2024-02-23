@@ -55,7 +55,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     if initial_descriptor_dir is not None:
         descriptor_folders.append(initial_descriptor_dir)
     descriptor_folders += [desc_dir for _, desc_dir, _ in in_dirs]
-    print len(in_dirs)
+
     files = []
     print('listing files')
     for folder in descriptor_folders:
@@ -78,10 +78,10 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
                 descriptors[k] = v
     print('have {} descriptors in dict'.format(sum([len(v) for v in descriptors.values()])))
 
-    nb_processes = min(multiprocessing.cpu_count(),
-                       int(100 / psutil.virtual_memory().percent),
-                       len(in_dirs))
-    nb_processes = 1 if nb_processes <= 1 else nb_processes - 1
+    nb_processes = min(multiprocessing.cpu_count(), len(in_dirs))
+    print 'count and dir processes', nb_processes
+
+    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) else int(100 / psutil.virtual_memory().percent),
     print 'using {} processes for descriptor parsing'.format(nb_processes)
 
     if nb_processes == 1:
