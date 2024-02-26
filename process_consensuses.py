@@ -10,6 +10,8 @@ from os import listdir
 from os.path import isfile, join
 from descriptor_reader import DescriptorReader
 import psutil
+
+
 def skip_listener(path, exception):
     print('ERROR [{0}]: {1}'.format(path.encode('ascii', 'ignore'),
                                     exception.__unicode__().encode('ascii', 'ignore')))
@@ -70,7 +72,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     results = p.map(read_descriptors, [i for i in list(zip(range(len(files)), files))])
 
     print('Merging results')
-    for result in results:
+    for result in [r for r in results if r is not None]:
         for k, v in result.items():
             if k in descriptors:
                 descriptors[k].update(v)
@@ -81,7 +83,8 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     nb_processes = min(multiprocessing.cpu_count(), len(in_dirs))
     print 'count and dir processes', nb_processes
 
-    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) else int(100 / psutil.virtual_memory().percent)
+    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) \
+        else int(100 / psutil.virtual_memory().percent)
     print 'using {} processes for descriptor parsing'.format(nb_processes)
 
     if nb_processes == 1:
