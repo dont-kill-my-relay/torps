@@ -26,6 +26,8 @@ def read_descriptors((chunk, files)):
     dr = DescriptorReader()
     for f in files:
         desc = dr.get_descriptor(f)
+        if desc is None:
+            continue
         num_descriptors += 1
         if desc is not None and desc['fingerprint'] not in descriptors:
             descriptors[desc['fingerprint']] = {}
@@ -69,6 +71,8 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     print('processing {} chunks'.format(len(files)))
     # read all descriptors into memory
     p = multiprocessing.Pool(multiprocessing.cpu_count())
+    if None in files:
+        print('None in files')
     results = p.map(read_descriptors, [i for i in list(zip(range(len(files)), files))])
 
     print('Merging results')

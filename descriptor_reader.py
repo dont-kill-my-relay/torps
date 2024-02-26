@@ -69,7 +69,7 @@ class DescriptorReader:
         try:
             result['published'] = datetime.datetime.strptime(result['published'][:19], '%Y-%m-%d %H:%M:%S')
         except:
-            print file_path
+            print (file_path, 'cannot be processed because of published time: ', result['published'])
             return None
         return result
 
