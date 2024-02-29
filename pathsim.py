@@ -23,6 +23,7 @@ _testing = False  # True
 
 GUARD_SAMPLED_INDEX = 0
 
+
 class TorOptions:
     """Stores parameters set by Tor."""
     # given by #define ROUTER_MAX_AGE (60*60*48) in or.h    
@@ -602,7 +603,7 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
     # after that point.
     # Note that hibernating status is not an input here.
     # Rules derived from Tor source: choose_random_entry_impl() in entrynodes.c
-
+    global GUARD_SAMPLED_INDEX
     # add guards if not enough in list
     if (len(guards) < TorOptions.num_guards_list):
         # Oddly then only count the number of live ones
@@ -628,14 +629,14 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
             guards[new_guard] = {'expires': (expiration + \
                                              circ_time), 'bad_since': None, 'unreachable_since': None, \
                                  'last_attempted': 0, 'made_contact': False, 'index': GUARD_SAMPLED_INDEX}
-            GUARD_SAMPLED_INDEX+=1
+            GUARD_SAMPLED_INDEX += 1
 
     # check for guards that will work for this circuit
     guards_for_circ = []
     # iterator over guards fingerprints, sorted by sampled index
-    guards_iterator = filter(lambda x: guard_filter_for_circ(x, \
-                            cons_rel_stats, descriptors, fast, stable, exit, circ_time,
-                            guards), sorted(guards, lambda x: guards[x]['index']))
+    guards_iterator = iter(
+        filter(lambda x: guard_filter_for_circ(x, cons_rel_stats, descriptors, fast, stable, exit, circ_time, guards),
+               sorted(guards, key=lambda x: guards[x]['index'])))
     # We pick num_guards_choice of them; by default 1.
     for _ in range(0, TorOptions.num_guards_choice):
         guard = next(guards_iterator, None)
@@ -1749,7 +1750,7 @@ pathsim, and pickle it. The pickled object is input to the simulate command')
 
                 cons_dir = os.path.join(args.in_dir, 'consensuses-{0}-{1}{2}'.format(year, prepend, month))
                 desc_dir = os.path.join(args.in_dir, 'server-descriptors-{0}-{1}{2}'.format(year, prepend, month))
-                desc_out_dir = os.path.join(args.out_dir, 'network-state-{0}-{1}{2}'. format(year, prepend, month))
+                desc_out_dir = os.path.join(args.out_dir, 'network-state-{0}-{1}{2}'.format(year, prepend, month))
 
                 if not os.path.exists(desc_out_dir):
                     os.mkdir(desc_out_dir)
