@@ -21,14 +21,16 @@ import logging
 logger = logging.getLogger(__name__)
 _testing = False  # True
 
+GUARD_SAMPLED_INDEX = 0
+
 
 class TorOptions:
     """Stores parameters set by Tor."""
     # given by #define ROUTER_MAX_AGE (60*60*48) in or.h    
     router_max_age = 60 * 60 * 48
 
-    num_guards = 1
-    min_num_guards = 1
+    num_guards_list = 20
+    num_guards_choice = 1
     guard_expiration_min = 60 * 24 * 3600  # min time until guard removed from list
     guard_expiration_max = 90 * 24 * 3600  # max time until guard removed from list
     default_bwweightscale = 10000
@@ -591,7 +593,7 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
                         circ_time, weighted_guards=None):
     """Obtains needed number of live guards that will work for circuit.
     Chooses new guards if needed, and *modifies* guard list by adding them."""
-    # Get live guards then add new ones until TorOptions.num_guards reached,
+    # Get live guards then add new ones until TorOptions.num_guards_list reached,
     # where live is
     #  - bad_since isn't set
     #  - unreachable_since isn't set without retry
@@ -601,9 +603,9 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
     # after that point.
     # Note that hibernating status is not an input here.
     # Rules derived from Tor source: choose_random_entry_impl() in entrynodes.c
-
+    global GUARD_SAMPLED_INDEX
     # add guards if not enough in list
-    if (len(guards) < TorOptions.num_guards):
+    if (len(guards) < TorOptions.num_guards_list):
         # Oddly then only count the number of live ones
         # Slightly depart from Tor code by not considering the circuit's
         # fast or stable flags when finding live guards.
@@ -615,7 +617,7 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
                                        ((guards[x]['unreachable_since'] == None) or \
                                         guard_is_time_to_retry(guards[x], circ_time)), \
                              guards)
-        for i in range(TorOptions.num_guards - len(live_guards)):
+        for i in range(TorOptions.num_guards_list - len(live_guards)):
             new_guard = get_new_guard(bw_weights, bwweightscale, \
                                       cons_rel_stats, descriptors, guards, \
                                       weighted_guards)
@@ -626,16 +628,23 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
                                  TorOptions.guard_expiration_max)
             guards[new_guard] = {'expires': (expiration + \
                                              circ_time), 'bad_since': None, 'unreachable_since': None, \
-                                 'last_attempted': 0, 'made_contact': False}
+                                 'last_attempted': 0, 'made_contact': False, 'index': GUARD_SAMPLED_INDEX}
+            GUARD_SAMPLED_INDEX += 1
 
     # check for guards that will work for this circuit
-    guards_for_circ = filter(lambda x: guard_filter_for_circ(x, \
-                                                             cons_rel_stats, descriptors, fast, stable, exit, circ_time,
-                                                             guards), \
-                             guards)
+    guards_for_circ = []
+    # iterator over guards fingerprints, sorted by sampled index
+    guards_iterator = iter(
+        filter(lambda x: guard_filter_for_circ(x, cons_rel_stats, descriptors, fast, stable, exit, circ_time, guards),
+               sorted(guards, key=lambda x: guards[x]['index'])))
+    # We pick num_guards_choice of them; by default 1.
+    for _ in range(0, TorOptions.num_guards_choice):
+        guard = next(guards_iterator, None)
+        if guard is not None:
+            guards_for_circ.append(guard)
     # add new guards while there aren't enough for this circuit
     # adding is done without reference to the circuit - how Tor does it
-    while (len(guards_for_circ) < TorOptions.min_num_guards):
+    while len(guards_for_circ) < TorOptions.num_guards_choice:
         new_guard = get_new_guard(bw_weights, bwweightscale, \
                                   cons_rel_stats, descriptors, guards, \
                                   weighted_guards)
@@ -646,13 +655,14 @@ def get_guards_for_circ(bw_weights, bwweightscale, cons_rel_stats, \
                              TorOptions.guard_expiration_max)
         guards[new_guard] = {'expires': (expiration + \
                                          circ_time), 'bad_since': None, 'unreachable_since': None, \
-                             'last_attempted': 0, 'made_contact': False}
+                             'last_attempted': 0, 'made_contact': False, 'index': GUARD_SAMPLED_INDEX}
+        GUARD_SAMPLED_INDEX += 1
         if (guard_filter_for_circ(new_guard, cons_rel_stats, descriptors, \
                                   fast, stable, exit, circ_time, guards)):
             guards_for_circ.append(new_guard)
 
-    # return first TorOptions.num_guards usable guards
-    return guards_for_circ[0:TorOptions.num_guards]
+    # return first TorOptions.num_guards_choice usable guards
+    return guards_for_circ[0:TorOptions.num_guards_choice]
 
 
 def circuit_covers_port_need(circuit, descriptors, port, need):
@@ -1676,8 +1686,10 @@ consensuses')
                                  help='indicates the number of adversarial exits to add')
     simulate_parser.add_argument('--other_network_modifier', default=None,
                                  help='class to modify network, argument syntax: module.class-argstring')
-    simulate_parser.add_argument('--num_guards', type=int, default=1,
-                                 help='indicates size of client guard list')
+    simulate_parser.add_argument('--num_guards_list', type=int, default=20,
+                                 help='indicates size of client guard sampled list')
+    simulate_parser.add_argument('--num_guards_choice', type=int, default=1,
+                                 help="Number of guards we choose from the sampled list, in sampling order")
     simulate_parser.add_argument('--guard_expiration', type=int, default=60,
                                  help='indicates time in days until one-month period during which guard\
 may expire, with 0 indicating no guard expiration')
@@ -1738,7 +1750,7 @@ pathsim, and pickle it. The pickled object is input to the simulate command')
 
                 cons_dir = os.path.join(args.in_dir, 'consensuses-{0}-{1}{2}'.format(year, prepend, month))
                 desc_dir = os.path.join(args.in_dir, 'server-descriptors-{0}-{1}{2}'.format(year, prepend, month))
-                desc_out_dir = os.path.join(args.out_dir, 'network-state-{0}-{1}{2}'. format(year, prepend, month))
+                desc_out_dir = os.path.join(args.out_dir, 'network-state-{0}-{1}{2}'.format(year, prepend, month))
 
                 if not os.path.exists(desc_out_dir):
                     os.mkdir(desc_out_dir)
@@ -1764,8 +1776,8 @@ pathsim, and pickle it. The pickled object is input to the simulate command')
             guard_expiration_min = int(100 * 365.25 * 24 * 60 * 60)
 
         # use arguments to adjust some TorOption parameters
-        TorOptions.num_guards = args.num_guards
-        TorOptions.min_num_guards = max(args.num_guards - 1, 1)
+        TorOptions.num_guards_choice = args.num_guards_choice
+        TorOptions.num_guards_list = args.num_guards_list
         TorOptions.guard_expiration_min = guard_expiration_min
         TorOptions.guard_expiration_max = guard_expiration_min + 30 * 24 * 3600
 
