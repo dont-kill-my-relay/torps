@@ -1604,7 +1604,7 @@ def create_circuits(network_states, streams, num_samples, congmodel,
 
 
 def get_user_model(start_time, end_time, tracefilename=None,
-                   session='simple=600'):
+                   session='simple=600', top_ips=None):
     streams = []
     if (re.match('simple', session)):
         # simple user that makes a port 80 request every x seconds
@@ -1616,6 +1616,21 @@ def get_user_model(start_time, end_time, tracefilename=None,
         str_ip = '74.125.131.105'  # www.google.com
         for t in xrange(start_time, end_time, http_request_wait):
             streams.append({'time': t, 'type': 'connect', 'ip': str_ip, 'port': 80})
+    if re.match('top', session):
+        # simple user that makes a port 80 request every x seconds
+        match = re.match('top=([0-9]+)', session)
+        if match:
+            http_request_wait = int(match.group(1))
+        else:
+            http_request_wait = 600
+        if top_ips is None:
+            print('No --top_ips file given')
+            exit(-1)
+        f = open(top_ips, 'r')
+        str_ips = [line.strip() for line in f.readlines()]
+        f.close()
+        for t in xrange(start_time, end_time, http_request_wait):
+            streams.append({'time': t, 'type': 'connect', 'ip': choice(str_ips), 'port': 80})
     else:
         ut = UserTraces.from_pickle(tracefilename)
         um = UserModel(ut, start_time, end_time)
@@ -1667,7 +1682,9 @@ directories are located')
     simulate_parser.add_argument('--user_model', default='simple=600',
                                  help='user model to build out of traces, with standard trace file one \
 of "facebook", "gmailgchat", "gcalgdocs", "websearch", "irc", "bittorrent", \
-"typical", "best", "worst", "simple=[seconds/request]"')
+"typical", "best", "worst", "simple=[seconds/request]", "top=[seconds/request]"')
+    simulate_parser.add_argument('--top_ips', default=None,
+                                 help="File with the list of IPs to consider when the user model is set to top")
     simulate_parser.add_argument('--output_class',
                                  default='event_callbacks.PrintStreamAssignments',
                                  help='class implementing callbacks on circuit and stream creation, e.g. for producing simulation output')
@@ -1829,7 +1846,7 @@ pathsim, and pickle it. The pickled object is input to the simulate command')
         #   "simple", "facebook", "gmailgchat", "gcalgdocs", "websearch", "irc",
         #   "bittorrent"
         streams = get_user_model(start_time, end_time, args.trace_file,
-                                 session=args.user_model)
+                                 session=args.user_model, top_ips=args.top_ips)
 
         # for alternate path-selection algorithms
         # set parameters and substitute simulation functions
