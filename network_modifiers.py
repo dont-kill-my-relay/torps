@@ -4,6 +4,7 @@ from stem import Flag
 from stem.exit_policy import ExitPolicy
 import json
 import pathsim
+from datetime import datetime
 
 class Enum(tuple): __getattr__ = tuple.index
 
@@ -200,7 +201,7 @@ def recompute_bwweights(network_state, bww_errors):
                 Wmd = Wgd = (weightscale-Wed)/2
 
                 check = check_weights_errors(Wgg, Wgd, Wmg, Wme,
-                        Wmd, Wee, Wed,  weightscale, G, M, E, D, T, bww_erorrs, 10,
+                        Wmd, Wee, Wed,  weightscale, G, M, E, D, T, bww_errors, 10,
                         True)
 
             if (check):
@@ -303,7 +304,7 @@ class AdversaryInsertion(object):
                 for fp in self.adv_relays])
             # recompute bwweights taking into account the new nodes added
             (casename, Wgg, Wgd, Wee, Wed, Wmg, Wme, Wmd) =\
-                    recompute_bwweights(network_state, self.bww_erorrs)
+                    recompute_bwweights(network_state, self.bww_errors)
             bwweights = network_state.cons_bw_weights
             if self.testing: 
                 print('New computation of bwweights, network load case is {0}.\nRecomputed weights are Wgg={1}, Wgd={2}, Wee={3}, Wed={4}, Wmg={5}, Wme={6}, Wmd={7}.\nThe weights from the consensus are Wgg={8}, Wgd={9}, Wee={10}, Wed={11}, Wmg={12}, Wme={13}, Wmd={14}'.format(\
@@ -328,6 +329,7 @@ class ExcludedRelaysInsertion(object):
         with open(args.excluded_relays_file, 'r') as f:
             relays = json.load(f)
         self.excluded_relays = {}
+        self.excluded_relays_descriptors = {}
         self.testing = testing
         self.bww_errors = Enum(("NO_ERROR","SUMG_ERROR", "SUME_ERROR",
                 "SUMD_ERROR","BALANCE_MID_ERROR", "BALANCE_EG_ERROR",
@@ -335,20 +337,19 @@ class ExcludedRelaysInsertion(object):
         self.first_modification = True
         #timestamp in UTC or local time? It should be UTC; but the code overall
         #in TorPS uses local time.
-        self.apply_after = args.add_excluded_relays_after
         hibernating = False
         for fp, relay_data in relays.iteritems():
             self.excluded_relays[fp] = pathsim.RouterStatusEntry(fp,
-                relay_data['nickname'], relay_data['flags'], relay_data['bandwidth'])
+                relay_data['nickname'], relay_data['flags'], int(relay_data['bandwidth']))
 
-            self.excluded_relays_descriptors[fingerprint] = \
-                pathsim.ServerDescriptor(fingerprint,
-                    hibernating, relay_data['nickname'], relay_data['family'], relay_data['address'], relay_data['exit_policy'], 1
+            self.excluded_relays_descriptors[fp] = \
+                pathsim.ServerDescriptor(fp,
+                        hibernating, relay_data['nickname'], relay_data['family'], relay_data['address'], ExitPolicy(*relay_data['exit_policy']), 1
                 )
-        relays = self.excluded_relays.values()
+        relays = relays.values()
         relays.sort(key = lambda x: x['last_seen_in'])
-        lowest_seen_relay = relays[0]['last_seen_in'])
-        self.apply_after = datetime.timestamp(datetime.strptime(lowest_seen_relay, "%y-%m-%d %H:%M:%S"))
+        lowest_seen_relay = relays[0]['last_seen_in']
+        self.apply_after = pathsim.timestamp(datetime.strptime(lowest_seen_relay, "%Y-%m-%d %H:%M:%S"))
 
     def modify_network_state(self, network_state):
 
@@ -362,11 +363,11 @@ class ExcludedRelaysInsertion(object):
                     network_state.cons_rel_stats[fp] = relay_data
                     network_state.hibernating_statuses.append((0, fp, False))
                     added_relay += 1
-            if testing:
+            if self.testing:
                 print("Added {0} excluded relays to consensus".format(added_relay))
 
             (casename, Wgg, Wgd, Wee, Wed, Wmg, Wme, Wmd) =\
-                    recompute_bwweights(network_state, self.bww_erorrs)
+                    recompute_bwweights(network_state, self.bww_errors)
             bwweights = network_state.cons_bw_weights
             if self.testing:
                 print('New bwweights due to adding excluded relays, network load case is {0}.\nRecomputed weights are Wgg={1}, Wgd={2}, Wee={3}, Wed={4}, Wmg={5}, Wme={6}, Wmd={7}.\nThe weights from the consensus are Wgg={8}, Wgd={9}, Wee={10}, Wed={11}, Wmg={12}, Wme={13}, Wmd={14}'.format(\
