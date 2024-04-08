@@ -1684,6 +1684,7 @@ consensuses')
                                  help='indicates the number of adversarial guards to add')
     simulate_parser.add_argument('--num_adv_exits', type=int, default=0,
                                  help='indicates the number of adversarial exits to add')
+    simulate_parser.add_argument('--excluded_relays_file', help="file to excluded relays, in json")
     simulate_parser.add_argument('--other_network_modifier', default=None,
                                  help='class to modify network, argument syntax: module.class-argstring')
     simulate_parser.add_argument('--num_guards_list', type=int, default=20,
