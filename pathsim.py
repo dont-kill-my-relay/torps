@@ -21,7 +21,6 @@ import logging
 logger = logging.getLogger(__name__)
 _testing = False  # True
 
-rand.seed(42)
 GUARD_SAMPLED_INDEX = 0
 
 
@@ -1716,6 +1715,8 @@ may expire, with 0 indicating no guard expiration')
                                                         'WARNING', 'ERROR', 'CRITICAL'],
                                  help='set level of log messages to send to stdout, DEBUG produces testing output, quiet at all other levels',
                                  default='INFO')
+    simulate_parser.add_argument('--random_seed', type=int, default=None,
+                                 help="Seed to use for the random number generator")
 
     pathalg_subparsers = simulate_parser.add_subparsers(help='simulate\
 commands', dest='pathalg_subparser')
@@ -1782,6 +1783,7 @@ pathsim, and pickle it. The pickled object is input to the simulate command')
     elif (args.subparser == 'simulate'):
         logging.basicConfig(stream=sys.stdout, level=getattr(logging,
                                                              args.loglevel))
+        rand.seed(args.random_seed)
         if (logger.getEffectiveLevel() == logging.DEBUG):
             logger.debug('DEBUG level detected')
             _testing = True
