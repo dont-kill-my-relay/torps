@@ -3,7 +3,7 @@ import os
 import os.path
 from stem import Flag
 from stem.exit_policy import ExitPolicy
-from random import random, randint, choice
+import random as rand
 import sys
 import collections
 import cPickle as pickle
@@ -21,6 +21,7 @@ import logging
 logger = logging.getLogger(__name__)
 _testing = False  # True
 
+rand.seed(42)
 GUARD_SAMPLED_INDEX = 0
 
 
@@ -1301,7 +1302,7 @@ def create_circuit(cons_rel_stats, cons_valid_after, cons_fresh_until,
                                               circ_fast, circ_stable, guards, \
                                               exit_node, \
                                               circ_time, weighted_guards)
-            guard_node = choice(circ_guards)
+            guard_node = rand.choice(circ_guards)
             if (hibernating_status[guard_node]):
                 if (not guards[guard_node]['made_contact']):
                     del guards[guard_node]
@@ -1630,7 +1631,7 @@ def get_user_model(start_time, end_time, tracefilename=None,
         str_ips = [line.strip() for line in f.readlines()]
         f.close()
         for t in xrange(start_time, end_time, http_request_wait):
-            streams.append({'time': t, 'type': 'connect', 'ip': choice(str_ips), 'port': 80})
+            streams.append({'time': t, 'type': 'connect', 'ip': rand.choice(str_ips), 'port': 80})
     else:
         ut = UserTraces.from_pickle(tracefilename)
         um = UserModel(ut, start_time, end_time)
