@@ -152,6 +152,9 @@ compromise time and rate for the guard/exit/guard&exit of user circuits. See the
 output for command options.
 
 ### Versions
-The latest version of TorPS (tag "tor-0.2.4.23") simulates path selection as performed by
+The latest version (tag "tor-0.4.8") simulates the behavior of the latest C-Tor version 0.4.8 which became stable
+on August 2023.
+
+The version of TorPS (tag "tor-0.2.4.23") simulates path selection as performed by
 Tor stable release 0.2.4.23. The TorPS version at tag "tor-0.2.3.25" simulates path selection
 as performed by Tor stable release 0.2.3.25.
