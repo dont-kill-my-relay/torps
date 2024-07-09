@@ -10,6 +10,7 @@ from os import listdir
 from os.path import isfile, join
 from descriptor_reader import DescriptorReader
 import psutil
+from datetime import datetime, timedelta
 
 
 def skip_listener(path, exception):
@@ -49,7 +50,6 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
             initial_descriptor_dir: Contains descriptors to initialize processing.
     """
     descriptors = {}
-
     if fat:
         print('Outputting fat classes.')
 
@@ -87,8 +87,12 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     nb_processes = min(multiprocessing.cpu_count(), len(in_dirs))
     print 'count and dir processes', nb_processes
 
-    nb_processes = nb_processes if nb_processes < int(100 / psutil.virtual_memory().percent) \
-        else int(100 / psutil.virtual_memory().percent)
+    used_mem = psutil.virtual_memory().percent
+    # Guesstimate of the number of processes we can create.  Each process needs to copy the data it will use.
+    # The * 2.8 factor tries to capture the memory overhead of the copy.  Increase the value to lower the number of
+    # processes created.
+
+    nb_processes = min(nb_processes, int((100 - used_mem) / ((used_mem / len(in_dirs)) * 2.8)))
     print 'using {} processes for descriptor parsing'.format(nb_processes)
 
     if nb_processes == 1:
@@ -97,7 +101,30 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     else:
         p = multiprocessing.Pool(nb_processes)
         p.map(process_batch_of_consensuses,
-              [(desc_out_dir, descriptors, fat, in_consensuses_dir) for in_consensuses_dir, _, desc_out_dir in in_dirs])
+              [(desc_out_dir,
+                filter_descriptors_for_process(descriptors, in_consensuses_dir),
+                fat,
+                in_consensuses_dir)
+               for in_consensuses_dir, _, desc_out_dir in in_dirs])
+
+
+def filter_descriptors_for_process(descriptors, in_consensus_dir):
+    print(in_consensus_dir)
+    date_str = in_consensus_dir[-7:]
+    month = datetime.strptime(date_str, "%Y-%m")
+    start = month - timedelta(days=7)
+    end = month + timedelta(days=32)
+    nb = 0
+    filtered = {}
+    for fprint, value in descriptors.items():
+        for timestamp, desc in value.items():
+            if start <= datetime.utcfromtimestamp(timestamp) <= end:
+                if fprint not in filtered:
+                    filtered[fprint] = {}
+                filtered[fprint][timestamp] = desc
+                nb += 1
+    print("{} descriptors for {}".format(nb, date_str))
+    return filtered
 
 
 def process_batch_of_consensuses((desc_out_dir, descriptors, fat, in_consensuses_dir)):
