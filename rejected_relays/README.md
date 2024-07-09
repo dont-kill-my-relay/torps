@@ -21,3 +21,19 @@ python3 rejected_relays_to_json.py --month 12 --year 2021 --excluded_on_day 1 --
 
 `--month`, `--year` and `--excluded_on_day` set the date for the exclusion.  
 `--fingerprints` is the filename with the fingerprints of excluded relays.
+
+## Run TorPS with the rejected relays kept in the simulation
+
+A network modifier has been implemented to keep the rejected relays in the simulation.  Here is an example of use.
+
+```shell
+python2.7 pathsim.py simulate \
+   --nsf_dir etwork-state-dir \
+   --num_samples 1000 \
+   --user_model simple=600 \
+   --format normal \
+   --other_network_modifier network_modifiers.ExcludedRelaysInsertion- \
+   --excluded_relays_file rejected_relays/excluded_relays.json \
+   --loglevel INFO \
+   tor
+```
