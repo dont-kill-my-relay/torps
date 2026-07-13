@@ -93,6 +93,8 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     # processes created.
 
     nb_processes = min(nb_processes, int((100 - used_mem) / ((used_mem / len(in_dirs)) * 2.8)))
+    nb_processes = max(1, nb_processes)
+
     print 'using {} processes for descriptor parsing'.format(nb_processes)
 
     if nb_processes == 1:
