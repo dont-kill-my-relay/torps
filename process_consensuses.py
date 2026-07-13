@@ -1,3 +1,4 @@
+import sys
 import pathsim
 import stem.descriptor.reader
 import stem.descriptor
@@ -69,6 +70,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     chunk_size = 5000
     files = [files[i:i + chunk_size] for i in range(0, len(files), chunk_size)]
     print('processing {} chunks'.format(len(files)))
+    sys.stdout.flush()
     # read all descriptors into memory
     p = multiprocessing.Pool(multiprocessing.cpu_count())
     if None in files:
@@ -76,6 +78,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     results = p.map(read_descriptors, [i for i in list(zip(range(len(files)), files))])
 
     print('Merging results')
+    sys.stdout.flush()
     for result in [r for r in results if r is not None]:
         for k, v in result.items():
             if k in descriptors:
@@ -83,9 +86,11 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
             else:
                 descriptors[k] = v
     print('have {} descriptors in dict'.format(sum([len(v) for v in descriptors.values()])))
+    sys.stdout.flush()
 
     nb_processes = min(multiprocessing.cpu_count(), len(in_dirs))
     print 'count and dir processes', nb_processes
+    sys.stdout.flush()
 
     used_mem = psutil.virtual_memory().percent
     # Guesstimate of the number of processes we can create.  Each process needs to copy the data it will use.
@@ -96,6 +101,7 @@ def process_consensuses(in_dirs, fat, initial_descriptor_dir):
     nb_processes = max(1, nb_processes)
 
     print 'using {} processes for descriptor parsing'.format(nb_processes)
+    sys.stdout.flush()
 
     if nb_processes == 1:
         for in_consensuses_dir, _, desc_out_dir in in_dirs:
@@ -276,6 +282,8 @@ def process_one_consensus(desc_out_dir, descriptors, fat, pathname):
 
         print('Wrote descriptors for {0} relays.'.format(num_found))
         print('Did not find descriptors for {0} relays\n'.format(num_not_found))
+        sys.stdout.flush()
     else:
         print('Problem parsing {0}.'.format(filename))
+        sys.stdout.flush()
     cons_f.close()
