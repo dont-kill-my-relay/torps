@@ -9,20 +9,20 @@ from functools import lru_cache
 class ConsensusReader:
     # Regex to parse a router entry in the consensus.  Named group to get only relevant info when needed
     pattern = re.compile(
-        '(^r (?P<nickname>\S*) (?P<id>\S*) (?P<digest>\S*) (?P<publication>\S* \S*) (?P<ip>\S*) (?P<orport>\S*) (?P<dirport>\S*)$\n)'
-        '(^a (?P<ipv6>\S*)$\n)?'
-        '(^s (?P<flags>(\S ?)*)$\n)'
-        '(^v (?P<version>.*)$\n)'
-        '(^pr .*$\n)?'
-        '(?P<weight>^w (Bandwidth=(?P<bandwidth>\d*)).*$\n)'
-        '(?P<ports>^p .*$)', re.MULTILINE)
+        r'(^r (?P<nickname>\S*) (?P<id>\S*) (?P<digest>\S*) (?P<publication>\S* \S*) (?P<ip>\S*) (?P<orport>\S*) (?P<dirport>\S*)$\n)'
+        r'(^a (?P<ipv6>\S*)$\n)?'
+        r'(^s (?P<flags>(\S ?)*)$\n)'
+        r'(^v (?P<version>.*)$\n)'
+        r'(^pr .*$\n)?'
+        r'(?P<weight>^w (Bandwidth=(?P<bandwidth>\d*)).*$\n)'
+        r'(?P<ports>^p .*$)', re.MULTILINE)
 
     bridge_pattern = re.compile(
-        '(^r (?P<nickname>\S*) (?P<id>\S*) (?P<digest>\S*) (?P<publication>\S* \S*) (?P<ip>\S*) (?P<orport>\S*) (?P<dirport>\S*)$\n)'
-        '(^a (?P<ipv6>\S*)$\n)?'
-        '(^s (?P<flags>(\S ?)*)$\n)'
-        '(?P<weight>^w (Bandwidth=(?P<bandwidth>\d*)).*$\n)'
-        '(?P<ports>^p .*$)', re.MULTILINE)
+        r'(^r (?P<nickname>\S*) (?P<id>\S*) (?P<digest>\S*) (?P<publication>\S* \S*) (?P<ip>\S*) (?P<orport>\S*) (?P<dirport>\S*)$\n)'
+        r'(^a (?P<ipv6>\S*)$\n)?'
+        r'(^s (?P<flags>(\S ?)*)$\n)'
+        r'(?P<weight>^w (Bandwidth=(?P<bandwidth>\d*)).*$\n)'
+        r'(?P<ports>^p .*$)', re.MULTILINE)
 
     default_ttl = 70
 

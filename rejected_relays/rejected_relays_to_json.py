@@ -117,7 +117,7 @@ if __name__ == "__main__":
     # Download the consensus and descriptors; check if not already done.
     do_download_cons = False
     do_download_descs = False
-    cache_folder = f"{args.in_dir_prefix}_{args.month}_{args.year}"
+    cache_folder = f"{args.in_dir_prefix}/{args.month}_{args.year}"
     if not os.path.exists(cache_folder):
         os.makedirs(cache_folder)
         do_download_cons = True

@@ -8,24 +8,24 @@ from utils import months_between
 class DescriptorReader:
     patterns_iter = [
         re.compile(
-            "^router (?P<nickname>\S*) (?P<address>\S*) (?P<or_port>\d*) (?P<socks_port>\d*) (?P<dir_port>\d*)$\n",
+            r"^router (?P<nickname>\S*) (?P<address>\S*) (?P<or_port>\d*) (?P<socks_port>\d*) (?P<dir_port>\d*)$\n",
             re.MULTILINE,
         ),
-        re.compile("^platform (?P<platform>.*)$\n", re.MULTILINE),
+        re.compile(r"^platform (?P<platform>.*)$\n", re.MULTILINE),
         re.compile(
-            "^bandwidth (?P<bandwidth_avg>\d*) (?P<bandwidth_burst>\d*) (?P<bandwidth_observed>\d*)$\n",
+            r"^bandwidth (?P<bandwidth_avg>\d*) (?P<bandwidth_burst>\d*) (?P<bandwidth_observed>\d*)$\n",
             re.MULTILINE,
         ),
-        re.compile("^contact (?P<contact>.*)$\n", re.MULTILINE),
-        re.compile("^published (?P<published>.*)$\n", re.MULTILINE),
-        re.compile("^fingerprint (?P<fingerprint>.*)$\n", re.MULTILINE),
-        re.compile("^uptime (?P<uptime>\d*)$\n", re.MULTILINE),
+        re.compile(r"^contact (?P<contact>.*)$\n", re.MULTILINE),
+        re.compile(r"^published (?P<published>.*)$\n", re.MULTILINE),
+        re.compile(r"^fingerprint (?P<fingerprint>.*)$\n", re.MULTILINE),
+        re.compile(r"^uptime (?P<uptime>\d*)$\n", re.MULTILINE),
     ]
 
     patterns_all = {
-        "exit_policy": re.compile("(^(?:reject|accept) \S*$)\n", re.MULTILINE),
-        "family": re.compile("^family (.*$\n(?:^\$.*$\n)*)", re.MULTILINE),
-        "proto": re.compile("^proto (?P<proto>.*)$\n", re.MULTILINE),
+        "exit_policy": re.compile(r"(^(?:reject|accept) \S*$)\n", re.MULTILINE),
+        "family": re.compile(r"^family (.*$\n(?:^\$.*$\n)*)", re.MULTILINE),
+        "proto": re.compile(r"^proto (?P<proto>.*)$\n", re.MULTILINE),
     }
 
     def __init__(
